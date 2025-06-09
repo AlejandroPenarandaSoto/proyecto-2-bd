@@ -2,7 +2,8 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 import os
 from dotenv import load_dotenv
-from logic.exceptions.GlobalExceptionHandler import registerErrorHandlers
+from logica.excepciones.GlobalExceptionHandler import RegisterErrorHandlers
+from rest.usuario.UsuarioController import RegistrarRutasUsuario
 
 db = SQLAlchemy()
 
@@ -16,9 +17,8 @@ def create_app():
 
     db.init_app(app)
 
-    from .routes import main
-    app.register_blueprint(main)
+    RegistrarRutasUsuario(app)
 
-    registerErrorHandlers(app)
+    RegisterErrorHandlers(app)
 
     return app

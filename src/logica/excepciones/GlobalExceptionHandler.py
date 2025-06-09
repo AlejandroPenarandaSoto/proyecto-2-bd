@@ -1,7 +1,7 @@
 from flask import jsonify
 from werkzeug.exceptions import HTTPException
 
-def registerErrorHandlers(app):
+def RegisterErrorHandlers(app):
 
     @app.errorhandler(Exception)
     def handle_exception(e):
