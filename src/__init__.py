@@ -2,13 +2,12 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 import os
 from dotenv import load_dotenv
-from logica.excepciones.GlobalExceptionHandler import RegisterErrorHandlers
-from rest.usuario.UsuarioController import RegistrarRutasUsuario
-
-db = SQLAlchemy()
+from .Extensions import db
+from .logica.excepciones.GlobalExceptionHandler import RegisterErrorHandlers
+from .rest.usuario.UsuarioController import clientesBP
 
 def create_app():
-    load_dotenv()  # Carga variables desde .env
+    load_dotenv()
 
     app = Flask(__name__)
 
@@ -17,7 +16,8 @@ def create_app():
 
     db.init_app(app)
 
-    RegistrarRutasUsuario(app)
+
+    app.register_blueprint(clientesBP)
 
     RegisterErrorHandlers(app)
 
