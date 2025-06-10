@@ -1,0 +1,24 @@
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+import os
+from dotenv import load_dotenv
+from .Extensions import db
+from .logica.excepciones.GlobalExceptionHandler import RegisterErrorHandlers
+from .rest.usuario.UsuarioController import clientesBP
+
+def create_app():
+    load_dotenv()
+
+    app = Flask(__name__)
+
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    db.init_app(app)
+
+
+    app.register_blueprint(clientesBP)
+
+    RegisterErrorHandlers(app)
+
+    return app
