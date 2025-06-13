@@ -7,6 +7,7 @@ from .logica.excepciones.GlobalExceptionHandler import RegisterErrorHandlers
 from .rest.usuario.UsuarioController import clientesBP
 from .rest.habitacion.HabitacionController import habitacionesBP
 from .rest.reservacion.ReservcacionController import reservacionesBP
+from .rest.pago.PagoController import pagosBP
 
 def create_app():
     load_dotenv()
@@ -22,6 +23,7 @@ def create_app():
     app.register_blueprint(clientesBP)
     app.register_blueprint(habitacionesBP)
     app.register_blueprint(reservacionesBP)
+    app.register_blueprint(pagosBP)
 
     RegisterErrorHandlers(app)
 
