@@ -18,32 +18,12 @@ def obtenerClientes():
     pNacionalidad = request.args.get('nacionalidad')
     pCorreo = request.args.get('correo')
 
-    cursorName = 'cursor_usuarios'
-    callProc = text("""
-        CALL sp_obtener_usuarios(:ref, :p_nombre, :p_nacionalidad, :p_correo)
-    """)
-
-    trans = None
     try:
-        with db.engine.connect() as conn:
-            trans = conn.begin()
-
-            conn.execute(callProc, {
-                'ref': cursorName,
-                'p_nombre': pNombre,
-                'p_nacionalidad': pNacionalidad,
-                'p_correo': pCorreo
-            })
-
-            fetchCursor = text(f'FETCH ALL FROM "{cursorName}";')
-            result = conn.execute(fetchCursor)
-
-            trans.commit()
-
+        usuarios = obtenerUsuarios(db.session, pNombre, pNacionalidad, pCorreo)
         clientes = []
-        keys = result.keys()
-        for row in result:
-            cliente = dict(zip(keys, row))
+
+        for row in usuarios:
+            cliente = dict(row._mapping)  # más robusto para SQLAlchemy 1.4+
             clientes.append({
                 'nombre': cliente['nombre'],
                 'nacionalidad': cliente['nacionalidad'],
@@ -53,17 +33,19 @@ def obtenerClientes():
 
         return jsonify(clientes)
 
-    except Exception:
-        if trans is not None:
-            trans.rollback()
-        raise
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-@clientesBP.route('/clientes/<int:idUsuario>', methods=['GET'])
+@clientesBP.route('/<int:idUsuario>', methods=['GET'])
 def getClienteId(idUsuario):
-    usuario = obtenerUsuarioPorId(idUsuario)
-    if usuario:
-        return jsonify(usuario.to_dict())
-    return jsonify({'error': 'Cliente no encontrado'}), 404
+    try:
+        usuario = obtenerUsuarioPorId(idUsuario)
+        if usuario:
+            return jsonify(usuario), 200
+        else:
+            return jsonify({'error': 'Cliente no encontrado'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @clientesBP.route('/clientes', methods=['POST'])

@@ -3,15 +3,14 @@ from sqlalchemy import text
 from src.logica.entidad.usuario import Usuario
 
 def obtenerUsuarios(dbSession, nombre=None, nacionalidad=None, correo=None):
-    cursorName = 'cursorUsuarios'
+    cursorName = 'cursor_usuarios'
     callProc = text("""
         CALL sp_obtener_usuarios(:ref, :pNombre, :pNacionalidad, :pCorreo)
     """)
     fetchCursor = text(f'FETCH ALL FROM "{cursorName}";')
 
     try:
-        with dbSession.connection() as conn:
-            trans = conn.begin()
+        with db.engine.begin() as conn:
             conn.execute(callProc, {
                 'ref': cursorName,
                 'pNombre': nombre,
@@ -19,20 +18,23 @@ def obtenerUsuarios(dbSession, nombre=None, nacionalidad=None, correo=None):
                 'pCorreo': correo
             })
             result = conn.execute(fetchCursor)
-            trans.commit()
-
             return result.fetchall()
-
-    except Exception:
-        trans.rollback()
-        raise
-
-
+    except Exception as e:
+        raise e
 
 def obtenerUsuarioPorId(idUsuario):
-    result = db.session.execute("CALL usuario_por_id(:idUsuario)", {"idUsuario": idUsuario})
-    row = result.fetchone()
-    return Usuario(**dict(row)) if row else None
+    cursorName = 'cursor_usuarios'
+    callProc = text("""CALL sp_usuario_por_id(:p_id_usuario, :ref)""")
+    fetchCursor = text(f'FETCH ALL FROM "{cursorName}";')
+    try:
+        with db.engine.begin() as conn:
+            conn.execute(callProc, {'p_id_usuario': idUsuario, 'ref': cursorName})
+            result = conn.execute(fetchCursor)
+            row = result.fetchone()
+            return dict(row._mapping) if row else None
+    except Exception as e:
+        print(f"Error en obtenerUsuarioPorId: {e}")
+        raise e
 
 
 def insertarUsuario(usuario: Usuario):
