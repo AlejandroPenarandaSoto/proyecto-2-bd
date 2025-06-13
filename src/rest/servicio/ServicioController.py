@@ -69,8 +69,6 @@ def updateServicio(id):
     try:
         servicioActualizado = Servicio(
             idServicio=id,
-            idHotel=data.get('id_hotel'),
-            idPago=data.get('id_pago'),
             tipo=data.get('tipo'),
             montoPromocion=data.get('monto_promocion'),
             reembolso=data.get('reembolso'),

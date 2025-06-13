@@ -2,14 +2,14 @@ from typing import Optional
 
 class Servicio:
     def __init__(self,
-                 idServicio: int,
-                 idHotel: int,
-                 tipo: str,
-                 montoPromocion: float,
-                 reembolso: float,
-                 motivoCargo: str,
-                 cargoExtra: float,
-                 montoBase: float,
+                 idServicio: Optional[int],
+                 idHotel: Optional[int] = None,
+                 tipo: str = '',
+                 montoPromocion: float = 0.0,
+                 reembolso: float = 0.0,
+                 motivoCargo: str = '',
+                 cargoExtra: float = 0.0,
+                 montoBase: float = 0.0,
                  idPago: Optional[int] = None
                  ):
         self.idServicio = idServicio
