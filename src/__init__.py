@@ -8,6 +8,7 @@ from .rest.usuario.UsuarioController import clientesBP
 from .rest.habitacion.HabitacionController import habitacionesBP
 from .rest.reservacion.ReservcacionController import reservacionesBP
 from .rest.pago.PagoController import pagosBP
+from .rest.servicio.ServicioController import serviciosBP
 
 def create_app():
     load_dotenv()
@@ -24,6 +25,7 @@ def create_app():
     app.register_blueprint(habitacionesBP)
     app.register_blueprint(reservacionesBP)
     app.register_blueprint(pagosBP)
+    app.register_blueprint(serviciosBP)
 
     RegisterErrorHandlers(app)
 
