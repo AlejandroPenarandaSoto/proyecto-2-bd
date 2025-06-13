@@ -86,6 +86,4 @@ def deleteReservacion(idReservacion):
         eliminarReservacion(idReservacion)
         return jsonify({'mensaje': 'Reservación eliminada correctamente'}), 200
     except Exception as e:
-        if "violates foreign key constraint" in str(e):
-            return jsonify({'error': 'No se puede eliminar la reservación porque tiene dependencias asociadas'}), 409
         return jsonify({'error': f'Error al eliminar reservación: {str(e)}'}), 500
