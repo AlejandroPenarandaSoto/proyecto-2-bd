@@ -77,20 +77,30 @@ def createCliente():
     except Exception as e:
         return jsonify({'error': f'Error al crear cliente: {str(e)}'}), 500
 
-@clientesBP.route('/clientes/<int:idUsuario>', methods=['PUT'])
-def updateCliente(idUsuario):
+@clientesBP.route('/<int:id>', methods=['PUT'])
+def updateCliente(id):
     data = request.get_json()
-    usuario = Usuario(
-        idUsuario=idUsuario,
-        nacionalidad=data.get('nacionalidad'),
-        nombre=data.get('nombre'),
-        docIdentidad=data.get('docIdentidad'),
-        telefono=data.get('telefono'),
-        correo=data.get('correo'),
-        contrasena=data.get('contrasena')
-    )
-    actualizarUsuario(usuario)
-    return jsonify({'mensaje': 'Cliente actualizado'})
+    try:
+        email = data.get('correo')
+
+        if not email or not validarEmail(email):
+            return jsonify({'error': 'Correo electrónico inválido'}), 400
+
+        usuarioActualizado = Usuario(
+            idUsuario=id,
+            nacionalidad=data.get('nacionalidad'),
+            nombre=data.get('nombre'),
+            docIdentidad=data.get('docIdentidad'),
+            telefono=data.get('telefono'),
+            correo=email,
+            contrasena=data.get('contrasena')
+        )
+
+        actualizarUsuario(usuarioActualizado)
+        return jsonify({'mensaje': 'Cliente actualizado'}), 200
+
+    except Exception as e:
+        return jsonify({'error': f'Error al actualizar cliente: {str(e)}'}), 500
 
 
 @clientesBP.route('/clientes/<int:idUsuario>', methods=['DELETE'])

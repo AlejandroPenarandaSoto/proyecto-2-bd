@@ -56,20 +56,23 @@ def insertarUsuario(usuario):
 
 
 def actualizarUsuario(usuario: Usuario):
-    db.session.execute(
-        "CALL sp_actualizar_usuario(:idUsuario, :nacionalidad, :nombre, :docIdentidad, :telefono, :correo, :contrasena)",
-        {
-            "idUsuario": usuario.idUsuario,
-            "nacionalidad": usuario.nacionalidad,
-            "nombre": usuario.nombre,
-            "docIdentidad": usuario.docIdentidad,
-            "telefono": usuario.telefono,
-            "correo": usuario.correo,
-            "contrasena": usuario.contrasena,
-        },
-    )
-    db.session.commit()
-
+    sp_call = text("""
+        CALL sp_actualizar_usuario(:p_id_usuario, :p_nacionalidad, :p_nombre, :p_doc_identidad, :p_telefono, :p_correo, :p_contrasena)
+    """)
+    try:
+        with db.engine.begin() as conn:  # begin para commit automático
+            conn.execute(sp_call, {
+                'p_id_usuario': usuario.idUsuario,
+                'p_nacionalidad': usuario.nacionalidad,
+                'p_nombre': usuario.nombre,
+                'p_doc_identidad': usuario.docIdentidad,
+                'p_telefono': usuario.telefono,
+                'p_correo': usuario.correo,
+                'p_contrasena': usuario.contrasena,
+            })
+    except Exception as e:
+        print(f"Error actualizando usuario: {e}")
+        raise
 
 def eliminarUsuario(idUsuario):
     db.session.execute("CALL sp_eliminar_usuario(:idUsuario)", {"idUsuario": idUsuario})
