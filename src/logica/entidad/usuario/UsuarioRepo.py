@@ -3,15 +3,13 @@ from sqlalchemy import text
 from src.logica.entidad.usuario import Usuario
 
 def obtenerUsuarios(dbSession, nombre=None, nacionalidad=None, correo=None):
-    cursorName = 'cursorUsuarios'
+    cursorName = 'cursor_usuarios'
     callProc = text("""
         CALL sp_obtener_usuarios(:ref, :pNombre, :pNacionalidad, :pCorreo)
     """)
     fetchCursor = text(f'FETCH ALL FROM "{cursorName}";')
-
     try:
-        with dbSession.connection() as conn:
-            trans = conn.begin()
+        with db.engine.begin() as conn:
             conn.execute(callProc, {
                 'ref': cursorName,
                 'pNombre': nombre,
@@ -19,53 +17,68 @@ def obtenerUsuarios(dbSession, nombre=None, nacionalidad=None, correo=None):
                 'pCorreo': correo
             })
             result = conn.execute(fetchCursor)
-            trans.commit()
-
             return result.fetchall()
+    except Exception as e:
+        raise e
 
-    except Exception:
-        trans.rollback()
+def obtenerUsuarioPorId(idUsuario):
+    cursorName = 'cursor_usuarios'
+    callProc = text("""CALL sp_usuario_por_id(:p_id_usuario, :ref)""")
+    fetchCursor = text(f'FETCH ALL FROM "{cursorName}";')
+    try:
+        with db.engine.begin() as conn:
+            conn.execute(callProc, {'p_id_usuario': idUsuario, 'ref': cursorName})
+            result = conn.execute(fetchCursor)
+            row = result.fetchone()
+            return dict(row._mapping) if row else None
+    except Exception as e:
+        print(f"Error en obtenerUsuarioPorId: {e}")
+        raise e
+
+
+def insertarUsuario(usuario):
+    sp_call = text("""
+        CALL sp_insertar_usuario(:p_nacionalidad, :p_nombre, :p_doc_identidad, :p_telefono, :p_correo, :p_contrasena)
+    """)
+    try:
+        with db.engine.begin() as conn:
+            conn.execute(sp_call, {
+                'p_nacionalidad': usuario.nacionalidad,
+                'p_nombre': usuario.nombre,
+                'p_doc_identidad': usuario.docIdentidad,
+                'p_telefono': usuario.telefono,
+                'p_correo': usuario.correo,
+                'p_contrasena': usuario.contrasena,
+            })
+    except Exception as e:
+        print(f"Error insertando usuario: {e}")
         raise
 
 
-
-def obtenerUsuarioPorId(idUsuario):
-    result = db.session.execute("CALL usuario_por_id(:idUsuario)", {"idUsuario": idUsuario})
-    row = result.fetchone()
-    return Usuario(**dict(row)) if row else None
-
-
-def insertarUsuario(usuario: Usuario):
-    db.session.execute(
-        "CALL insertar_usuario(:nacionalidad, :nombre, :docIdentidad, :telefono, :correo, :contrasena)",
-        {
-            "nacionalidad": usuario.nacionalidad,
-            "nombre": usuario.nombre,
-            "docIdentidad": usuario.docIdentidad,
-            "telefono": usuario.telefono,
-            "correo": usuario.correo,
-            "contrasena": usuario.contrasena,
-        },
-    )
-    db.session.commit()
-
-
 def actualizarUsuario(usuario: Usuario):
-    db.session.execute(
-        "CALL sp_actualizar_usuario(:idUsuario, :nacionalidad, :nombre, :docIdentidad, :telefono, :correo, :contrasena)",
-        {
-            "idUsuario": usuario.idUsuario,
-            "nacionalidad": usuario.nacionalidad,
-            "nombre": usuario.nombre,
-            "docIdentidad": usuario.docIdentidad,
-            "telefono": usuario.telefono,
-            "correo": usuario.correo,
-            "contrasena": usuario.contrasena,
-        },
-    )
-    db.session.commit()
-
+    sp_call = text("""
+        CALL sp_actualizar_usuario(:p_id_usuario, :p_nacionalidad, :p_nombre, :p_doc_identidad, :p_telefono, :p_correo, :p_contrasena)
+    """)
+    try:
+        with db.engine.begin() as conn:  # begin para commit automático
+            conn.execute(sp_call, {
+                'p_id_usuario': usuario.idUsuario,
+                'p_nacionalidad': usuario.nacionalidad,
+                'p_nombre': usuario.nombre,
+                'p_doc_identidad': usuario.docIdentidad,
+                'p_telefono': usuario.telefono,
+                'p_correo': usuario.correo,
+                'p_contrasena': usuario.contrasena,
+            })
+    except Exception as e:
+        print(f"Error actualizando usuario: {e}")
+        raise
 
 def eliminarUsuario(idUsuario):
-    db.session.execute("CALL sp_eliminar_usuario(:idUsuario)", {"idUsuario": idUsuario})
-    db.session.commit()
+    sp_call = text("CALL sp_eliminar_usuario(:p_id_usuario)")
+    try:
+        with db.engine.begin() as conn:  # maneja automáticamente el commit
+            conn.execute(sp_call, {"p_id_usuario": idUsuario})
+    except Exception as e:
+        print(f"Error eliminando usuario: {e}")
+        raise

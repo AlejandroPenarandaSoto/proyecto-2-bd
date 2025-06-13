@@ -6,9 +6,10 @@ from src.logica.entidad.usuario.UsuarioRepo import (
     actualizarUsuario,
     eliminarUsuario,
 )
-from src.logica.entidad.usuario import Usuario
+from src.logica.entidad.usuario.Usuario import Usuario
 from sqlalchemy import text
 from src.Extensions import db
+import re
 
 clientesBP = Blueprint('clientes', __name__, url_prefix='/clientes')
 
@@ -18,32 +19,12 @@ def obtenerClientes():
     pNacionalidad = request.args.get('nacionalidad')
     pCorreo = request.args.get('correo')
 
-    cursorName = 'cursor_usuarios'
-    callProc = text("""
-        CALL sp_obtener_usuarios(:ref, :p_nombre, :p_nacionalidad, :p_correo)
-    """)
-
-    trans = None
     try:
-        with db.engine.connect() as conn:
-            trans = conn.begin()
-
-            conn.execute(callProc, {
-                'ref': cursorName,
-                'p_nombre': pNombre,
-                'p_nacionalidad': pNacionalidad,
-                'p_correo': pCorreo
-            })
-
-            fetchCursor = text(f'FETCH ALL FROM "{cursorName}";')
-            result = conn.execute(fetchCursor)
-
-            trans.commit()
-
+        usuarios = obtenerUsuarios(db.session, pNombre, pNacionalidad, pCorreo)
         clientes = []
-        keys = result.keys()
-        for row in result:
-            cliente = dict(zip(keys, row))
+
+        for row in usuarios:
+            cliente = dict(row._mapping)  # más robusto para SQLAlchemy 1.4+
             clientes.append({
                 'nombre': cliente['nombre'],
                 'nacionalidad': cliente['nacionalidad'],
@@ -53,52 +34,81 @@ def obtenerClientes():
 
         return jsonify(clientes)
 
-    except Exception:
-        if trans is not None:
-            trans.rollback()
-        raise
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-@clientesBP.route('/clientes/<int:idUsuario>', methods=['GET'])
+@clientesBP.route('/<int:idUsuario>', methods=['GET'])
 def getClienteId(idUsuario):
-    usuario = obtenerUsuarioPorId(idUsuario)
-    if usuario:
-        return jsonify(usuario.to_dict())
-    return jsonify({'error': 'Cliente no encontrado'}), 404
+    try:
+        usuario = obtenerUsuarioPorId(idUsuario)
+        if usuario:
+            return jsonify(usuario), 200
+        else:
+            return jsonify({'error': 'Cliente no encontrado'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
+def validarEmail(email):
+    patron = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+    return re.match(patron, email) is not None
 
-@clientesBP.route('/clientes', methods=['POST'])
+@clientesBP.route('/', methods=['POST'])
 def createCliente():
     data = request.get_json()
-    nuevoUsuario = Usuario(
-        idUsuario=None,
-        nacionalidad=data.get('nacionalidad'),
-        nombre=data.get('nombre'),
-        docIdentidad=data.get('docIdentidad'),
-        telefono=data.get('telefono'),
-        correo=data.get('correo'),
-        contrasena=data.get('contrasena')
-    )
-    insertarUsuario(nuevoUsuario)
-    return jsonify({'mensaje': 'Cliente creado'}), 201
+    try:
+        email = data.get('correo')
 
+        if not email or not validarEmail(email):
+            return jsonify({'error': 'Correo electrónico inválido'}), 400
 
-@clientesBP.route('/clientes/<int:idUsuario>', methods=['PUT'])
-def updateCliente(idUsuario):
+        nuevoUsuario = Usuario(
+            idUsuario=None,
+            nacionalidad=data.get('nacionalidad'),
+            nombre=data.get('nombre'),
+            docIdentidad=data.get('docIdentidad'),
+            telefono=data.get('telefono'),
+            correo=email,
+            contrasena=data.get('contrasena')
+        )
+
+        insertarUsuario(nuevoUsuario)
+        return jsonify({'mensaje': 'Cliente creado'}), 201
+
+    except Exception as e:
+        return jsonify({'error': f'Error al crear cliente: {str(e)}'}), 500
+
+@clientesBP.route('/<int:id>', methods=['PUT'])
+def updateCliente(id):
     data = request.get_json()
-    usuario = Usuario(
-        idUsuario=idUsuario,
-        nacionalidad=data.get('nacionalidad'),
-        nombre=data.get('nombre'),
-        docIdentidad=data.get('docIdentidad'),
-        telefono=data.get('telefono'),
-        correo=data.get('correo'),
-        contrasena=data.get('contrasena')
-    )
-    actualizarUsuario(usuario)
-    return jsonify({'mensaje': 'Cliente actualizado'})
+    try:
+        email = data.get('correo')
+
+        if not email or not validarEmail(email):
+            return jsonify({'error': 'Correo electrónico inválido'}), 400
+
+        usuarioActualizado = Usuario(
+            idUsuario=id,
+            nacionalidad=data.get('nacionalidad'),
+            nombre=data.get('nombre'),
+            docIdentidad=data.get('docIdentidad'),
+            telefono=data.get('telefono'),
+            correo=email,
+            contrasena=data.get('contrasena')
+        )
+
+        actualizarUsuario(usuarioActualizado)
+        return jsonify({'mensaje': 'Cliente actualizado'}), 200
+
+    except Exception as e:
+        return jsonify({'error': f'Error al actualizar cliente: {str(e)}'}), 500
 
 
-@clientesBP.route('/clientes/<int:idUsuario>', methods=['DELETE'])
+@clientesBP.route('/<int:idUsuario>', methods=['DELETE'])
 def deleteCliente(idUsuario):
-    eliminarUsuario(idUsuario)
-    return jsonify({'mensaje': 'Cliente eliminado'})
+    try:
+        eliminarUsuario(idUsuario)
+        return jsonify({'mensaje': 'Cliente eliminado'}), 200
+    except Exception as e:
+        if "violates foreign key constraint" in str(e):
+            return jsonify({'error': 'No se puede eliminar el cliente porque tiene reservaciones asociadas'}), 409
+        return jsonify({'error': f'Error al eliminar cliente: {str(e)}'}), 500
