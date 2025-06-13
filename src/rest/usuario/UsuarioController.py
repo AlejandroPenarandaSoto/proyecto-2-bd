@@ -6,9 +6,10 @@ from src.logica.entidad.usuario.UsuarioRepo import (
     actualizarUsuario,
     eliminarUsuario,
 )
-from src.logica.entidad.usuario import Usuario
+from src.logica.entidad.usuario.Usuario import Usuario
 from sqlalchemy import text
 from src.Extensions import db
+import re
 
 clientesBP = Blueprint('clientes', __name__, url_prefix='/clientes')
 
@@ -47,22 +48,34 @@ def getClienteId(idUsuario):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+def validarEmail(email):
+    patron = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+    return re.match(patron, email) is not None
 
-@clientesBP.route('/clientes', methods=['POST'])
+@clientesBP.route('/', methods=['POST'])
 def createCliente():
     data = request.get_json()
-    nuevoUsuario = Usuario(
-        idUsuario=None,
-        nacionalidad=data.get('nacionalidad'),
-        nombre=data.get('nombre'),
-        docIdentidad=data.get('docIdentidad'),
-        telefono=data.get('telefono'),
-        correo=data.get('correo'),
-        contrasena=data.get('contrasena')
-    )
-    insertarUsuario(nuevoUsuario)
-    return jsonify({'mensaje': 'Cliente creado'}), 201
+    try:
+        email = data.get('correo')
 
+        if not email or not validarEmail(email):
+            return jsonify({'error': 'Correo electrónico inválido'}), 400
+
+        nuevoUsuario = Usuario(
+            idUsuario=None,
+            nacionalidad=data.get('nacionalidad'),
+            nombre=data.get('nombre'),
+            docIdentidad=data.get('docIdentidad'),
+            telefono=data.get('telefono'),
+            correo=email,
+            contrasena=data.get('contrasena')
+        )
+
+        insertarUsuario(nuevoUsuario)
+        return jsonify({'mensaje': 'Cliente creado'}), 201
+
+    except Exception as e:
+        return jsonify({'error': f'Error al crear cliente: {str(e)}'}), 500
 
 @clientesBP.route('/clientes/<int:idUsuario>', methods=['PUT'])
 def updateCliente(idUsuario):

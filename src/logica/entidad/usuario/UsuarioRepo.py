@@ -8,7 +8,6 @@ def obtenerUsuarios(dbSession, nombre=None, nacionalidad=None, correo=None):
         CALL sp_obtener_usuarios(:ref, :pNombre, :pNacionalidad, :pCorreo)
     """)
     fetchCursor = text(f'FETCH ALL FROM "{cursorName}";')
-
     try:
         with db.engine.begin() as conn:
             conn.execute(callProc, {
@@ -37,19 +36,23 @@ def obtenerUsuarioPorId(idUsuario):
         raise e
 
 
-def insertarUsuario(usuario: Usuario):
-    db.session.execute(
-        "CALL insertar_usuario(:nacionalidad, :nombre, :docIdentidad, :telefono, :correo, :contrasena)",
-        {
-            "nacionalidad": usuario.nacionalidad,
-            "nombre": usuario.nombre,
-            "docIdentidad": usuario.docIdentidad,
-            "telefono": usuario.telefono,
-            "correo": usuario.correo,
-            "contrasena": usuario.contrasena,
-        },
-    )
-    db.session.commit()
+def insertarUsuario(usuario):
+    sp_call = text("""
+        CALL sp_insertar_usuario(:p_nacionalidad, :p_nombre, :p_doc_identidad, :p_telefono, :p_correo, :p_contrasena)
+    """)
+    try:
+        with db.engine.begin() as conn:
+            conn.execute(sp_call, {
+                'p_nacionalidad': usuario.nacionalidad,
+                'p_nombre': usuario.nombre,
+                'p_doc_identidad': usuario.docIdentidad,
+                'p_telefono': usuario.telefono,
+                'p_correo': usuario.correo,
+                'p_contrasena': usuario.contrasena,
+            })
+    except Exception as e:
+        print(f"Error insertando usuario: {e}")
+        raise
 
 
 def actualizarUsuario(usuario: Usuario):
