@@ -75,5 +75,10 @@ def actualizarUsuario(usuario: Usuario):
         raise
 
 def eliminarUsuario(idUsuario):
-    db.session.execute("CALL sp_eliminar_usuario(:idUsuario)", {"idUsuario": idUsuario})
-    db.session.commit()
+    sp_call = text("CALL sp_eliminar_usuario(:p_id_usuario)")
+    try:
+        with db.engine.begin() as conn:  # maneja automáticamente el commit
+            conn.execute(sp_call, {"p_id_usuario": idUsuario})
+    except Exception as e:
+        print(f"Error eliminando usuario: {e}")
+        raise

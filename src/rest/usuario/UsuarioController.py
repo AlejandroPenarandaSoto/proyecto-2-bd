@@ -103,7 +103,12 @@ def updateCliente(id):
         return jsonify({'error': f'Error al actualizar cliente: {str(e)}'}), 500
 
 
-@clientesBP.route('/clientes/<int:idUsuario>', methods=['DELETE'])
+@clientesBP.route('/<int:idUsuario>', methods=['DELETE'])
 def deleteCliente(idUsuario):
-    eliminarUsuario(idUsuario)
-    return jsonify({'mensaje': 'Cliente eliminado'})
+    try:
+        eliminarUsuario(idUsuario)
+        return jsonify({'mensaje': 'Cliente eliminado'}), 200
+    except Exception as e:
+        if "violates foreign key constraint" in str(e):
+            return jsonify({'error': 'No se puede eliminar el cliente porque tiene reservaciones asociadas'}), 409
+        return jsonify({'error': f'Error al eliminar cliente: {str(e)}'}), 500
