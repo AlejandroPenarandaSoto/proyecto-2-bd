@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from .Extensions import db
 from .logica.excepciones.GlobalExceptionHandler import RegisterErrorHandlers
 from .rest.usuario.UsuarioController import clientesBP
+from .rest.habitacion.HabitacionController import habitacionesBP
 
 def create_app():
     load_dotenv()
@@ -18,6 +19,7 @@ def create_app():
 
 
     app.register_blueprint(clientesBP)
+    app.register_blueprint(habitacionesBP)
 
     RegisterErrorHandlers(app)
 
