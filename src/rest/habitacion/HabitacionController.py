@@ -101,11 +101,14 @@ def updateHabitacion(id):
     data = request.get_json()
     try:
         habitacionActualizada = Habitacion(
-            idHabitacion=id,
+            id_habitacion=id,
             numero=data.get('numero'),
+            descripcion=data.get('descripcion'),
             tipo=data.get('tipo'),
-            precio=data.get('precio'),
-            estado=data.get('estado')
+            esta_disponible=data.get('esta_disponible', False),
+            cama_king=data.get('cama_king', False),
+            vista_al_mar=data.get('vista_al_mar', False),
+            jacuzzi=data.get('jacuzzi', False)
         )
 
         actualizarHabitacion(habitacionActualizada)
